@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { AppRegistry,FlatList, View, Text,ListView, TextInput, Button,ToastAndroid, ActivityIndicator } from 'react-native';
+import { AppRegistry, Keyboard, FlatList, View, Text, ListView, TextInput, Button, ToastAndroid, RefreshControl } from 'react-native';
 import MyListItem from './MyListItem'
 import PlantList from './PlanList'
 import ScreenTwo from './ScreenTwo'
@@ -9,7 +9,7 @@ import ScreenTwo from './ScreenTwo'
 import { StyleSheet } from 'react-native';
 
 var Style = StyleSheet.create({
-    container: {
+  container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -24,78 +24,81 @@ var Style = StyleSheet.create({
     textAlign: 'center',
     color: '#333333',
     marginBottom: 5,
-  },
-  textInput: {
-      height: 40,
-      borderColor: 'gray',
-      borderWidth: 1
-  },
-    parent: {
-        padding: 16
-    },
-    germanLabel: {
-        marginTop: 20,
-        fontWeight: 'bold'
-    },
-    germanWord: {
-        marginTop: 15,
-        fontSize: 30,
-        fontStyle: 'italic'
-    }
+  }
 });
 
 export default class MyList extends Component {
-    constructor(props) {
-        super(props);
+  constructor(props) {
+    super(props);
 
-        this.state = { 
-            input: '' ,
-            output: '',
-            dataArray: new PlantList([]),
-            isLoading: true,
-        };
-    }
+    this.state = {
+      input: '',
+      output: '',
+      dataArray: new PlantList([]),
+      isLoading: true,
+    };
+  }
 
-    componentDidMount() {
-      return fetch('http://10.230.193.91:3000/list')
-        .then((response) => response.json())
-        .then((responseJson) => {
-          console.log(responseJson)
-          this.setState({
-              isLoading: false,
-              dataArray: new PlantList(responseJson)
-          });
-        })
-        .catch((error) => {
-          console.error(error);
+  _fetchDataFromAPI() {
+    return fetch('http://192.168.2.29:3000/list')
+      .then((response) => response.json())
+      .then((responseJson) => {
+        console.log(responseJson)
+        this.setState({
+          isLoading: false,
+          dataArray: new PlantList(responseJson)
         });
-    }
-    
-    static navigationOptions = {
-        title: 'List',
-      };
-      
+      })
+      .catch((error) => {
+        this.setState({
+          isLoading: false
+        });
+        console.error(error);
+      });
+  }
 
-        _onPressItem = (item) => {
-          this.setState(() => {
-            const { navigate } = this.props.navigation;
-            navigate('ScreenTwo', {item})
-          });
-        };
-      
-        _renderItem = ({item}) => (
-          <MyListItem
-            item = {item}
-            onPressItem={() => this._onPressItem(item)}
+  componentDidMount() {
+    Keyboard.dismiss;
+    this._fetchDataFromAPI()
+  }
+
+  static navigationOptions = {
+    title: 'List',
+  };
+
+  _onRefresh() {
+    this.setState({isLoading: true});
+    this._fetchDataFromAPI();
+  }
+
+  _onPressItem = (item) => {
+    this.setState(() => {
+      const { navigate } = this.props.navigation;
+      navigate('ScreenTwo', { item })
+    });
+  };
+
+  _renderItem = ({ item }) => (
+    <MyListItem
+      item={item}
+      onPressItem={() => this._onPressItem(item)}
+    />
+  );
+
+  render() {
+    return (
+      <View> 
+      <FlatList
+        refreshControl={
+          <RefreshControl
+            refreshing={this.state.isLoading}
+            onRefresh={this._onRefresh.bind(this)}
           />
-        );
-      
-        render() {
-          return (
-            <FlatList
-              data={this.state.dataArray.savedData}
-              renderItem={this._renderItem}
-            />
-          );
         }
+        data={this.state.dataArray.savedData}
+        renderItem={this._renderItem}
+      />
+      </View>
+    );
+  }
 }
